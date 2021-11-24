@@ -1,36 +1,28 @@
 class Match
 
     def initialize
-        puts "What role do you want?"
-        @human_role = self.choose_role
-        @human = Human.new(self, @human_role)
-        @computer_role = nil
-        case @human_role #1 is for BREAKER, 2 is for MAKER
-        when "1"
-            @computer_role = "2"
-        when "2"
-            @computer_role = "1"
-        end
-        @computer = Computer.new(self, @computer_role)
+        @human = Human.new(self)
+        @computer = Computer.new(self)
+        @breaker = nil
+        @maker = nil
         @code = nil
+        self.choose_role
     end
 
     def play
-        @human_role == "1" ? @code = @computer.make_code! : @code = @human.make_code!
+        @code = @maker.make_code!
         loop do
-            guess = @human.try_crack_code!
-            puts "#{@human}'s guess is #{guess}."
+            guess = @breaker.try_crack_code!
             if self.guess_checks?(guess)
                 puts "Win!"
                 break
-            # else
-            #     self.provide_feedback(guess)
+            else
+                self.provide_feedback(guess)
             end
         end
     end
 
     def guess_checks?(guess)
-        p "debug: the correct code is #{@code}"
         if guess == @code
             return true
         else
@@ -38,47 +30,56 @@ class Match
         end
     end
 
-    # def provide_feedback(guess)
-    #     feedback = []
-    #     check_index = 0
-    #     working_code = Array.new(@code)
-    #     guess.each do |guess_digit|
-    #         p "guess digit is #{guess_digit}"
-    #         p "code digit is #{working_code[check_index]}"
-    #         if guess_digit == working_code[check_index]
-    #             feedback << "O"
-    #             working_code.delete_at(check_index)
-    #             guess.delete_at(check_index)
-    #         end
-    #         check_index += 1
-    #     end
-    #     return p feedback 
-    # end
+    def provide_feedback(guess)
+        feedback = []
+        check_index = 0
+        second_test_guess = [] #the one to be tested for correct number if the position was wrong
+        second_test_code = []
+        guess.each do |guess_digit|
+            if guess_digit == @code[check_index]
+                feedback << "O"
+            else
+                second_test_code << @code[check_index]
+                second_test_guess << guess_digit
+            end
+            check_index += 1
+        end
+        common_values = (second_test_code & second_test_guess).flat_map do
+            |code_digit| code_digit * [second_test_code.count(code_digit),
+                second_test_guess.count(code_digit)].min
+        end
+        common_values.length.times do
+            feedback << "."
+        end
+        return puts "\nThe guess was #{guess}.\nThis how close it was #{feedback}"
+    end
 
     def choose_role
-        puts "Do you want to be the code BREAKER-(1) or the code MAKER-(2)?"
+        puts "\n\nDo you want to be the code BREAKER-(1) or the code MAKER-(2)?"
         role_choice = nil
         loop do
             role_choice = gets.chomp
             case role_choice
             when "1"
+                @breaker = @human
+                @maker = @computer
                 break
             when "2"
+                @breaker = @computer
+                @maker = @human
                 break
             else
                 puts "Enter '1' to be the BREAKER or '2' to be the MAKER."
             end
         end
-        return role_choice
     end
 
 
 end
 
 class Player
-    def initialize(match, player_role)
+    def initialize(match)
         @match = match
-        @player_role
     end
 end
 
@@ -89,7 +90,7 @@ class Human < Player
     end
 
     def try_crack_code!
-        puts "Guess the code"
+        puts "\nTry your guess."
         guess = gets.chomp.split(//).map { |number| number.to_i }
         return guess
     end
@@ -102,6 +103,10 @@ class Computer < Player
             code << rand(1..6)
         end
         return code
+    end
+
+    def try_crack_code!
+        
     end
 
 end
